@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deposit Incentive Calculator — United Finance Ltd.</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {},
+      }
+    }
+  </script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body class="dark flex flex-col items-center min-h-screen p-4 md:p-8 bg-gray-900 text-gray-100">
+
+  <!-- Header -->
+  <div class="w-full max-w-2xl text-center mb-6">
+    <div class="logo-container rounded-xl p-4 shadow-md mb-4 flex justify-center items-center bg-gray-800">
+      <img src="assets/logos/cs_logo.png" alt="United Finance Ltd. Logo" class="h-10 w-auto" />
+    </div>
+    <h1 class="text-4xl font-extrabold text-blue-400 mb-1">Deposit Incentive Calculator</h1>
+    <h2 class="text-lg font-light text-gray-400">United Finance Ltd.</h2>
+  </div>
+
+  <!-- Main Card -->
+  <div class="card w-full max-w-2xl p-6 md:p-10 rounded-xl shadow-lg bg-gray-800">
+    <form onsubmit="event.preventDefault(); onCalculate();">
+
+      <!-- Employee & Product Selection -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div>
+          <label class="block mb-2 font-semibold text-blue-400">Employee Type</label>
+          <select id="employeeType" class="w-full px-4 py-3 border rounded-lg text-base bg-gray-700 text-gray-100 border-gray-600">
+            <option value="permanent">Permanent Employee</option>
+            <option value="contractual">Contractual Employee</option>
+          </select>
+        </div>
+        <div>
+          <label class="block mb-2 font-semibold text-blue-400">Employee ID (Excel)</label>
+          <div class="flex gap-2">
+            <input id="employeeId" class="flex-1 px-4 py-3 border rounded-lg text-base bg-gray-700 text-gray-100 border-gray-600" placeholder="e.g., UFL-1234" />
+            <button type="button" class="px-4 py-3 bg-gray-600 rounded-lg hover:bg-gray-500 text-gray-100" onclick="fetchFlags()">
+              <i class="fa fa-database mr-2"></i>Fetch
+            </button>
+          </div>
+          <p class="text-sm mt-2 text-gray-400">Pulls <em>YTM Portfolio Growth Achiev (%)</em>, Column P (New&gt;Encashment), and Column R (CIF).</p>
+        </div>
+      </div>
+
+      <!-- Product Type -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div>
+          <label class="block mb-2 font-semibold text-blue-400">Product Type</label>
+          <select id="productType" class="w-full px-4 py-3 border rounded-lg text-base bg-gray-700 text-gray-100 border-gray-600" onchange="toggleFields()">
+            <option value="fixed">Fixed Deposit</option>
+            <option value="buildup">Build-Up DPS</option>
+          </select>
+        </div>
+        <div id="fixedOptions" class="hidden">
+          <label class="block mb-2 font-semibold text-blue-400">Fixed Deposit Option</label>
+          <select id="fixedType" class="w-full px-4 py-3 border rounded-lg text-base bg-gray-700 text-gray-100 border-gray-600" onchange="toggleFixedType()">
+            <option value="">-- Select --</option>
+            <option value="new">New Deposit</option>
+            <option value="renewal">Renewal</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- FLAGS Preview -->
+      <div id="flagsRow" class="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="p-4 border rounded-lg text-center border-gray-700 bg-gray-700">
+          <div class="text-sm text-gray-400">YTM Portfolio Growth Achiev (%)</div>
+          <div class="text-xl font-bold" id="ytmGrowth">—</div>
+        </div>
+        <div class="p-4 border rounded-lg text-center border-gray-700 bg-gray-700">
+          <div class="text-sm text-gray-400">New &gt; Encashment (Col P)</div>
+          <div class="text-xl font-bold" id="encashFlag">—</div>
+        </div>
+        <div class="p-4 border rounded-lg text-center border-gray-700 bg-gray-700">
+          <div class="text-sm text-gray-400">CIF Count (Col R)</div>
+          <div class="text-xl font-bold" id="cifFlag">—</div>
+        </div>
+      </div>
+
+      <!-- Fixed -> New -->
+      <div id="volumeFields" class="space-y-6 hidden">
+        <div>
+          <label class="block mb-2 font-semibold text-blue-400">Deposit Amount (BDT)</label>
+          <input type="text" id="amount" class="w-full px-4 py-3 border rounded-lg text-base text-right bg-gray-700 text-gray-100 border-gray-600 cursor-not-allowed" placeholder="Fetched from Excel" readonly />
+        </div>
+        <div>
+          <label class="block mb-2 font-semibold text-blue-400">Tenure (months)</label>
+          <input type="number" id="tenure" class="w-full px-4 py-3 border rounded-lg text-base bg-gray-700 text-gray-100 border-gray-600" min="3" placeholder="e.g., 36" / oninput="prefillNewDepositAmount()"  oninput="prefillNewDepositAmount()" >
+        </div>
+      </div>
+
+      <!-- Fixed -> Renewal -->
+      <div id="renewalFields" class="hidden space-y-6">
+        <div>
+          <label class="block mb-2 font-semibold text-blue-400">Renewal Amount (BDT)</label>
+          <input type="text" id="renewalAmount" class="w-full px-4 py-3 border rounded-lg text-base bg-gray-700 text-gray-100 border-gray-600" placeholder="e.g., 100,000" oninput="formatNumberInput(this)" />
+        </div>
+        <div>
+          <label class="block mb-2 font-semibold text-blue-400">Renewal Due (BDT)</label>
+          <input type="text" id="renewalDue" class="w-full px-4 py-3 border rounded-lg text-base bg-gray-700 text-gray-100 border-gray-600" placeholder="e.g., 80,000" oninput="formatNumberInput(this)" />
+        </div>
+      </div>
+
+      <!-- Build-Up DPS -->
+      <div id="buildupFields" class="hidden space-y-6">
+        <div>
+          <label class="block mb-2 font-semibold text-blue-400">Repeat Collection?</label>
+          <select id="repeat" class="w-full px-4 py-3 border rounded-lg text-base bg-gray-700 text-gray-100 border-gray-600" onchange="toggleRepeatFields()">
+            <option value="no">No</option>
+            <option value="yes">Yes</option>
+          </select>
+        </div>
+
+        <div id="depositRow" class="space-y-6">
+          <div>
+            <label class="block mb-2 font-semibold text-blue-400">Deposit Amount (BDT)</label>
+            <input type="text" id="amountBuildup" class="w-full px-4 py-3 border rounded-lg text-base bg-gray-700 text-gray-100 border-gray-600" placeholder="e.g., 2,00,000" oninput="formatIndianNumber(this)" />
+          </div>
+          <div>
+            <label class="block mb-2 font-semibold text-blue-400">Tenure (months)</label>
+            <input type="number" id="tenureBuildup" class="w-full px-4 py-3 border rounded-lg text-base bg-gray-700 text-gray-100 border-gray-600" min="3" max="216" placeholder="e.g., 36" />
+          </div>
+        </div>
+
+        <div id="installmentFields" class="hidden">
+          <label class="block mb-4 font-semibold text-blue-400">Installments</label>
+          <div class="overflow-x-auto rounded-lg shadow-sm">
+            <table class="w-full table-auto bg-gray-700 text-gray-100 border border-gray-600">
+              <thead>
+                <tr>
+                  <th class="p-3 text-center font-medium border-b border-gray-600">Amount (BDT)</th>
+                  <th class="p-3 text-center font-medium border-b border-gray-600">Tenure (Months)</th>
+                  <th class="p-3 text-center font-medium border-b border-gray-600">Installment Month</th>
+                  <th class="p-3 text-center font-medium border-b border-gray-600">Cutoff Month</th>
+                  <th class="p-3 text-center font-medium border-b border-gray-600">Action</th>
+                </tr>
+              </thead>
+              <tbody id="installmentBody"></tbody>
+            </table>
+          </div>
+          <button type="button" class="px-4 py-3 bg-gray-600 rounded-lg mt-4 w-full text-gray-100 hover:bg-gray-500" onclick="addInstallmentRow()">
+            <i class="fas fa-plus mr-2"></i> Add Another Installment
+          </button>
+          <div id="totalAmountDisplay" class="font-bold text-lg text-right text-blue-400 mt-4">Total Installment Amount: BDT 0</div>
+        </div>
+      </div>
+
+      <button type="submit" class="w-full px-6 py-4 bg-blue-600 text-white font-bold rounded-lg mt-8 uppercase tracking-wider hover:bg-blue-500">
+        Calculate Incentive
+      </button>
+    </form>
+
+    <div id="result" class="hidden mt-8 p-6 border-l-4 rounded-lg border-blue-400 bg-gray-700 text-gray-100">
+      <div class="text-sm text-gray-400" id="resultTitle">Result</div>
+      <div class="text-2xl font-bold mt-1"><span id="incentiveAmount">0</span> BDT</div>
+      <div class="mt-3 text-sm" id="resultNotes"></div>
+    </div>
+  </div>
+
+  <!-- Custom JS -->
+  <script src="assets/js/main.js"></script>
+</body>
+</html>
