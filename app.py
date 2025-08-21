@@ -1,7 +1,12 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pandas as pd
-from flask import Flask, request, jsonify, render_template
+import openpyxl
 
 app = Flask(__name__)
+
+# Allow Netlify site to call backend
+CORS(app, resources={r"/*": {"origins": "https://foryourincentive.netlify.app"}}, supports_credentials=True)
 
 EXCEL_FILE = "Commission_Structure_Jun25_Volume.xlsx"
 
@@ -342,7 +347,7 @@ def calc_buildup(amounts: list, tenure_list: list, employee_type: str, repeat: b
 # ========= Routes =========
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return jsonify({"status": "Backend running OK"})
 
 
 @app.route("/get_flags", methods=["POST"])
